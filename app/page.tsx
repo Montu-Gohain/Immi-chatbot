@@ -6,15 +6,15 @@ import remarkGfm from "remark-gfm";
 import AppointmentBooking from "./components/AppointmentBooking";
 
 // ─────────────────────────────────────────────────────────────
-// Brand tokens — extracted from Hart Advisors logo
+// Brand tokens
 // ─────────────────────────────────────────────────────────────
 const BRAND = {
-  crimsonDeep: "#6B0000", // darkest — navbar / sidebar depth
-  crimson: "#8B0000", // primary brand red
-  crimsonMid: "#A50000", // hover states
-  crimsonBright: "#C41E1E", // CTAs, accents
+  crimsonDeep: "#6B0000",
+  crimson: "#8B0000",
+  crimsonMid: "#A50000",
+  crimsonBright: "#C41E1E",
   crimsonGlow: "rgba(139,0,0,0.18)",
-  parchment: "#FDF8F5", // warm off-white background
+  parchment: "#FDF8F5",
   surface: "#FFFFFF",
   surfaceWarm: "#FEF9F7",
   border: "#F0E8E4",
@@ -25,6 +25,21 @@ const BRAND = {
   userBubble: "#8B0000",
   userBubble2: "#6B0000",
 };
+
+// ─────────────────────────────────────────────────────────────
+// useIsMobile hook
+// ─────────────────────────────────────────────────────────────
+function useIsMobile(breakpoint = 640): boolean {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < breakpoint : false,
+  );
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < breakpoint);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [breakpoint]);
+  return isMobile;
+}
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -84,6 +99,8 @@ interface ConsultPromptProps {
 }
 
 function ConsultPromptCard({ state, onYes, onNo }: ConsultPromptProps) {
+  const isMobile = useIsMobile(480);
+
   if (state === "no") {
     return (
       <div
@@ -122,17 +139,17 @@ function ConsultPromptCard({ state, onYes, onNo }: ConsultPromptProps) {
     <div
       style={{
         marginTop: 12,
-        padding: "18px 20px",
+        padding: isMobile ? "14px" : "18px 20px",
         background: `linear-gradient(135deg, #FFF5F5 0%, #FFF0EE 100%)`,
         border: `1px solid #F5C6C6`,
         borderRadius: 14,
         display: "flex",
         flexDirection: "column",
-        gap: 14,
+        gap: 12,
         boxShadow: `0 4px 20px rgba(139,0,0,0.08)`,
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
         <div
           style={{
             width: 36,
@@ -151,7 +168,7 @@ function ConsultPromptCard({ state, onYes, onNo }: ConsultPromptProps) {
         <div>
           <p
             style={{
-              fontSize: 14,
+              fontSize: isMobile ? 13 : 14,
               fontWeight: 700,
               color: BRAND.crimsonDeep,
               margin: "0 0 4px",
@@ -161,11 +178,12 @@ function ConsultPromptCard({ state, onYes, onNo }: ConsultPromptProps) {
           </p>
           <p
             style={{
-              fontSize: 13,
+              fontSize: 12,
               color: BRAND.textSecondary,
               margin: 0,
               display: "flex",
               alignItems: "center",
+              flexWrap: "wrap",
               gap: 6,
             }}
           >
@@ -189,16 +207,25 @@ function ConsultPromptCard({ state, onYes, onNo }: ConsultPromptProps) {
           </p>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+
+      {/* Buttons — stack on mobile */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          gap: 8,
+        }}
+      >
         <button
           onClick={onYes}
           style={{
-            flex: 1,
+            flex: isMobile ? undefined : 1,
+            width: isMobile ? "100%" : undefined,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             gap: 6,
-            padding: "11px 16px",
+            padding: isMobile ? "13px 16px" : "11px 16px",
             background: `linear-gradient(135deg, ${BRAND.crimson}, ${BRAND.crimsonBright})`,
             color: "white",
             border: "none",
@@ -219,11 +246,12 @@ function ConsultPromptCard({ state, onYes, onNo }: ConsultPromptProps) {
         <button
           onClick={onNo}
           style={{
+            width: isMobile ? "100%" : undefined,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             gap: 5,
-            padding: "11px 16px",
+            padding: isMobile ? "13px 16px" : "11px 16px",
             background: "white",
             color: BRAND.textSecondary,
             border: `1px solid ${BRAND.borderStrong}`,
@@ -256,6 +284,8 @@ function ConsultPromptCard({ state, onYes, onNo }: ConsultPromptProps) {
 // Main Page
 // ─────────────────────────────────────────────────────────────
 export default function Home() {
+  const isMobile = useIsMobile(640);
+
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -397,6 +427,11 @@ export default function Home() {
     }, 2000);
   };
 
+  // Avatar size: smaller on mobile
+  const avatarSize = isMobile ? 28 : 34;
+  // Indent for consult prompt / booking widget (avatar width + gap)
+  const assistantIndent = isMobile ? avatarSize + 8 : avatarSize + 12;
+
   return (
     <div
       style={{
@@ -407,7 +442,7 @@ export default function Home() {
         fontFamily: "'Georgia', 'Times New Roman', serif",
       }}
     >
-      {/* ── Header ────────────────────────────────────────────── */}
+      {/* ── Header ───────────────────────────────────────────── */}
       <header
         style={{
           background: `linear-gradient(135deg, ${BRAND.crimsonDeep} 0%, ${BRAND.crimson} 100%)`,
@@ -422,19 +457,25 @@ export default function Home() {
           style={{
             maxWidth: 900,
             margin: "0 auto",
-            padding: "0 20px",
-            height: 64,
+            padding: isMobile ? "0 14px" : "0 20px",
+            height: isMobile ? 54 : 64,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
           }}
         >
-          {/* Logo area */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Logo */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: isMobile ? 8 : 12,
+            }}
+          >
             <div
               style={{
-                width: 40,
-                height: 40,
+                width: isMobile ? 32 : 40,
+                height: isMobile ? 32 : 40,
                 borderRadius: 10,
                 background: "rgba(255,255,255,0.15)",
                 border: "1.5px solid rgba(255,255,255,0.25)",
@@ -442,12 +483,12 @@ export default function Home() {
                 alignItems: "center",
                 justifyContent: "center",
                 backdropFilter: "blur(8px)",
+                flexShrink: 0,
               }}
             >
-              {/* Scale of justice icon */}
               <svg
-                width="20"
-                height="20"
+                width={isMobile ? 16 : 20}
+                height={isMobile ? 16 : 20}
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="white"
@@ -462,7 +503,7 @@ export default function Home() {
             <div>
               <div
                 style={{
-                  fontSize: 17,
+                  fontSize: isMobile ? 14 : 17,
                   fontWeight: 800,
                   color: "white",
                   letterSpacing: "0.06em",
@@ -472,16 +513,19 @@ export default function Home() {
               >
                 Hart Advisors
               </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: "rgba(255,255,255,0.65)",
-                  letterSpacing: "0.08em",
-                  fontFamily: "sans-serif",
-                }}
-              >
-                US IMMIGRATION · LEGAL COUNSEL
-              </div>
+              {/* Hide subtitle on very small screens */}
+              {!isMobile && (
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "rgba(255,255,255,0.65)",
+                    letterSpacing: "0.08em",
+                    fontFamily: "sans-serif",
+                  }}
+                >
+                  US IMMIGRATION · LEGAL COUNSEL
+                </div>
+              )}
             </div>
           </div>
 
@@ -490,18 +534,19 @@ export default function Home() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 8,
+              gap: 6,
               background: "rgba(255,255,255,0.12)",
               border: "1px solid rgba(255,255,255,0.2)",
               borderRadius: 30,
-              padding: "6px 14px",
+              padding: isMobile ? "5px 10px" : "6px 14px",
               backdropFilter: "blur(8px)",
+              flexShrink: 0,
             }}
           >
             <div
               style={{
-                width: 8,
-                height: 8,
+                width: 7,
+                height: 7,
                 borderRadius: "50%",
                 background: "#4ADE80",
                 boxShadow: "0 0 6px #4ADE80",
@@ -509,27 +554,33 @@ export default function Home() {
             />
             <span
               style={{
-                fontSize: 13,
+                fontSize: isMobile ? 11 : 13,
                 color: "rgba(255,255,255,0.9)",
                 fontFamily: "sans-serif",
                 fontWeight: 500,
               }}
             >
-              Immi is online
+              {isMobile ? "Online" : "Immi is online"}
             </span>
           </div>
         </div>
       </header>
 
-      {/* ── Messages ──────────────────────────────────────────── */}
-      <main style={{ flex: 1, overflowY: "auto", padding: "28px 20px" }}>
+      {/* ── Messages ─────────────────────────────────────────── */}
+      <main
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: isMobile ? "16px 12px" : "28px 20px",
+        }}
+      >
         <div
           style={{
             maxWidth: 860,
             margin: "0 auto",
             display: "flex",
             flexDirection: "column",
-            gap: 24,
+            gap: isMobile ? 16 : 24,
           }}
         >
           {messages.map((message, index) => (
@@ -539,16 +590,16 @@ export default function Home() {
                   display: "flex",
                   flexDirection:
                     message.role === "user" ? "row-reverse" : "row",
-                  gap: 12,
+                  gap: isMobile ? 8 : 12,
                   alignItems: "flex-start",
                 }}
               >
                 {/* Avatar */}
                 <div
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 10,
+                    width: avatarSize,
+                    height: avatarSize,
+                    borderRadius: isMobile ? 8 : 10,
                     flexShrink: 0,
                     display: "flex",
                     alignItems: "center",
@@ -564,16 +615,17 @@ export default function Home() {
                   }}
                 >
                   {message.role === "assistant" ? (
-                    <Bot size={17} color="white" />
+                    <Bot size={isMobile ? 14 : 17} color="white" />
                   ) : (
-                    <User size={17} color="white" />
+                    <User size={isMobile ? 14 : 17} color="white" />
                   )}
                 </div>
 
                 {/* Bubble */}
                 <div
                   style={{
-                    maxWidth: "78%",
+                    // On mobile, allow bubbles to use more of the screen width
+                    maxWidth: isMobile ? "88%" : "78%",
                     background:
                       message.role === "user"
                         ? `linear-gradient(135deg, ${BRAND.userBubble}, ${BRAND.userBubble2})`
@@ -584,8 +636,8 @@ export default function Home() {
                       message.role === "user"
                         ? "18px 4px 18px 18px"
                         : "4px 18px 18px 18px",
-                    padding: "13px 17px",
-                    fontSize: 14,
+                    padding: isMobile ? "10px 13px" : "13px 17px",
+                    fontSize: isMobile ? 13 : 14,
                     lineHeight: 1.7,
                     boxShadow:
                       message.role === "user"
@@ -595,6 +647,9 @@ export default function Home() {
                       message.role === "assistant"
                         ? `1px solid ${BRAND.border}`
                         : "none",
+                    // Prevent long words / URLs from overflowing on mobile
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
                   }}
                 >
                   {message.role === "user" ? (
@@ -632,6 +687,15 @@ export default function Home() {
                           padding-left: 12px; margin: 8px 0;
                           color: ${BRAND.textSecondary}; font-style: italic;
                         }
+                        /* Prevent markdown tables overflowing on mobile */
+                        .prose-hart table {
+                          width: 100%; border-collapse: collapse; font-size: 12px;
+                          display: block; overflow-x: auto;
+                        }
+                        .prose-hart th, .prose-hart td {
+                          padding: 6px 10px; border: 1px solid ${BRAND.border};
+                          white-space: nowrap;
+                        }
                       `}</style>
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {message.content}
@@ -654,11 +718,11 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Consult prompt */}
+              {/* Consult prompt — indented to align with bubble */}
               {message.role === "assistant" &&
                 message.isApiResponse === true &&
                 message.consultPrompt !== undefined && (
-                  <div style={{ marginLeft: 46, marginTop: 4 }}>
+                  <div style={{ marginLeft: assistantIndent, marginTop: 4 }}>
                     <ConsultPromptCard
                       state={message.consultPrompt}
                       onYes={() => {
@@ -670,12 +734,18 @@ export default function Home() {
                   </div>
                 )}
 
-              {/* Booking widget */}
+              {/* Booking widget — full width on mobile, indented on desktop */}
               {message.role === "assistant" &&
                 (message.showBooking ||
                   (message.isApiResponse && message.consultPrompt === "yes")) &&
                 bookingIndex === index && (
-                  <div style={{ marginTop: 12, marginLeft: 46 }}>
+                  <div
+                    style={{
+                      marginTop: 12,
+                      // On mobile, stretch to full container width (no avatar indent)
+                      marginLeft: isMobile ? 0 : assistantIndent,
+                    }}
+                  >
                     <AppointmentBooking
                       onConfirm={handleBookingConfirm}
                       onClose={() => {
@@ -689,14 +759,20 @@ export default function Home() {
             </div>
           ))}
 
-          {/* Typing indicator (standalone) */}
+          {/* Typing indicator */}
           {isLoading && messages[messages.length - 1]?.content === "" && (
-            <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: isMobile ? 8 : 12,
+                alignItems: "flex-start",
+              }}
+            >
               <div
                 style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 10,
+                  width: avatarSize,
+                  height: avatarSize,
+                  borderRadius: isMobile ? 8 : 10,
                   flexShrink: 0,
                   display: "flex",
                   alignItems: "center",
@@ -704,7 +780,7 @@ export default function Home() {
                   background: `linear-gradient(135deg, ${BRAND.crimson}, ${BRAND.crimsonBright})`,
                 }}
               >
-                <Bot size={17} color="white" />
+                <Bot size={isMobile ? 14 : 17} color="white" />
               </div>
               <div
                 style={{
@@ -739,12 +815,12 @@ export default function Home() {
         </div>
       </main>
 
-      {/* ── Input bar ─────────────────────────────────────────── */}
+      {/* ── Input bar ────────────────────────────────────────── */}
       <footer
         style={{
           background: BRAND.surface,
           borderTop: `1px solid ${BRAND.border}`,
-          padding: "16px 20px 20px",
+          padding: isMobile ? "10px 12px 14px" : "16px 20px 20px",
           boxShadow: "0 -4px 24px rgba(0,0,0,0.06)",
         }}
       >
@@ -752,12 +828,12 @@ export default function Home() {
           <div
             style={{
               display: "flex",
-              gap: 10,
+              gap: 8,
               alignItems: "flex-end",
               background: BRAND.parchment,
               border: `1.5px solid ${BRAND.borderStrong}`,
               borderRadius: 14,
-              padding: "6px 6px 6px 16px",
+              padding: isMobile ? "5px 5px 5px 12px" : "6px 6px 6px 16px",
               transition: "border-color 0.2s, box-shadow 0.2s",
             }}
             onFocusCapture={(e) => {
@@ -776,7 +852,11 @@ export default function Home() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="Ask about visas, green cards, citizenship… or type 'book an appointment'"
+              placeholder={
+                isMobile
+                  ? "Ask about visas, green cards…"
+                  : "Ask about visas, green cards, citizenship… or type 'book an appointment'"
+              }
               rows={1}
               disabled={isLoading}
               style={{
@@ -785,7 +865,7 @@ export default function Home() {
                 border: "none",
                 outline: "none",
                 background: "transparent",
-                fontSize: 14,
+                fontSize: isMobile ? 13 : 14,
                 color: BRAND.textPrimary,
                 fontFamily: "sans-serif",
                 lineHeight: 1.6,
@@ -799,8 +879,8 @@ export default function Home() {
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
               style={{
-                width: 40,
-                height: 40,
+                width: isMobile ? 36 : 40,
+                height: isMobile ? 36 : 40,
                 flexShrink: 0,
                 display: "flex",
                 alignItems: "center",
@@ -827,7 +907,7 @@ export default function Home() {
               }}
             >
               <Send
-                size={16}
+                size={isMobile ? 14 : 16}
                 color={input.trim() && !isLoading ? "white" : BRAND.textMuted}
               />
             </button>
@@ -836,10 +916,11 @@ export default function Home() {
           <p
             style={{
               textAlign: "center",
-              fontSize: 11,
+              fontSize: isMobile ? 10 : 11,
               color: BRAND.textMuted,
-              marginTop: 10,
+              marginTop: 8,
               fontFamily: "sans-serif",
+              lineHeight: 1.5,
             }}
           >
             Immi provides general information only. For legal advice, consult a
@@ -860,6 +941,8 @@ export default function Home() {
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: ${BRAND.borderStrong}; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: ${BRAND.crimsonBright}; }
+        /* Prevent horizontal scroll on mobile */
+        html, body { overflow-x: hidden; max-width: 100%; }
       `}</style>
     </div>
   );
