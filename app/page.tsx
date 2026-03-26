@@ -346,7 +346,7 @@ export default function Home() {
         (m) => ({ role: m.role, content: m.content }),
       );
       const response = await fetch(
-        "https://8ufqzsm271.execute-api.us-east-2.amazonaws.com/dev/api/ai-chatbot-immi",
+        "https://8ufqzsm271.execute-api.us-east-2.amazonaws.com/dev/api/ai-chatbot-immi-claude",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
