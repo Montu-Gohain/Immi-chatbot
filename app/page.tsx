@@ -342,15 +342,16 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const conversationHistory: ConversationHistoryItem[] = messages.map(
-        (m) => ({ role: m.role, content: m.content }),
-      );
+      // Send only the current message, no conversation history
       const response = await fetch(
         "https://8ufqzsm271.execute-api.us-east-2.amazonaws.com/dev/api/ai-chatbot-immi-claude",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: userMessage, conversationHistory }),
+          body: JSON.stringify({ 
+            message: userMessage,
+            conversationHistory: [] // Empty array - no history
+          }),
         },
       );
       const data: ApiResponse = await response.json();
@@ -400,7 +401,7 @@ export default function Home() {
       setIsLoading(false);
     }
   };
-
+  
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
