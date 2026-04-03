@@ -4,6 +4,8 @@ import { Send, Bot, User, Calendar, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import AppointmentBooking from "./components/AppointmentBooking";
+import apiClient, { BASE_URL } from "./services/axios";
+import axios from "axios";
 
 // ─────────────────────────────────────────────────────────────
 // Brand tokens
@@ -342,20 +344,12 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      // Send only the current message, no conversation history
-      const response = await fetch(
-        "https://8ufqzsm271.execute-api.us-east-2.amazonaws.com/dev/api/ai-chatbot-immi-claude",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            message: userMessage,
-            conversationHistory: [] // Empty array - no history
-          }),
-        },
-      );
-      const data: ApiResponse = await response.json();
-      const assistantMessage = data.message;
+      const res = await axios.post(`${BASE_URL}/immi-claude-chatbot`, {
+        message: userMessage,
+        conversationHistory: [],
+      });
+
+      const assistantMessage = (res.data as ApiResponse).message;
 
       let currentIndex = 0;
       const typeInterval = setInterval(() => {
@@ -401,7 +395,6 @@ export default function Home() {
       setIsLoading(false);
     }
   };
-  
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();

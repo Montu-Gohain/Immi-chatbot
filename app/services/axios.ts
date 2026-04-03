@@ -7,7 +7,7 @@ const apiClient = axios.create({
   },
   timeout: 10000,
 });
-
+export const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 // Request interceptor — attach auth token if available
 apiClient.interceptors.request.use(
   (config) => {
