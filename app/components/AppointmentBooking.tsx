@@ -43,6 +43,7 @@ interface Slot {
 interface AppointmentBookingProps {
   onConfirm: (date: Date, time: string) => void;
   onClose: () => void;
+  conversationHistory?: { role: string; content: string }[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -170,6 +171,7 @@ const bs: Record<string, React.CSSProperties> = {
 export default function AppointmentBooking({
   onConfirm,
   onClose,
+  conversationHistory = [],
 }: AppointmentBookingProps) {
   const isMobile = useIsMobile(640);
   const today = new Date();
@@ -316,6 +318,10 @@ export default function AppointmentBooking({
         action: "book",
         slotId: selectedSlot.id,
         bookedBy: { name: name.trim(), email: email.trim() },
+        messages: conversationHistory.map((m) => ({
+          role: m.role,
+          text: m.content,
+        })),
       });
       setSubmitted(true);
       onConfirm(selectedDate, formatTime(selectedSlot.startTime));

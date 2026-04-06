@@ -747,6 +747,7 @@ export default function Home() {
                         if (message.isApiResponse)
                           setConsultPromptState(index, "no");
                       }}
+                      conversationHistory={messages}
                     />
                   </div>
                 )}
