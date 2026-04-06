@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+"use client";
+import React, { useState, useEffect, useCallback } from "react";
 import axios, { AxiosError } from "axios";
 import apiClient from "../services/axios";
+import { useRouter } from "next/navigation";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -1267,6 +1269,7 @@ function CalendarOverview({
   const [selectedDayStr, setSelectedDayStr] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const router = useRouter();
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
   const firstWeekday = getFirstDayOfMonth(viewYear, viewMonth);
@@ -1624,6 +1627,12 @@ function CalendarOverview({
             }}
           >
             Booked This Month
+          </div>
+          <div
+            className="my-3 cursor-pointer"
+            onClick={() => router.push("userQuery")}
+          >
+            Click here to Get Booked Appointment Details
           </div>
           <div
             className="booked-list"

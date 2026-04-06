@@ -451,7 +451,7 @@ export default function AppointmentsPage() {
               key={appt.id}
               appointment={appt}
               onView={(id) =>
-                router.push(`/expert/manage/appointment/details/${id}`)
+                router.push(`/expert/userQuery/appointment/details/${id}`)
               }
             />
           ))}
