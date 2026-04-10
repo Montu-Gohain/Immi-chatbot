@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios, { AxiosError } from "axios";
 import apiClient from "../services/axios";
 import { useRouter } from "next/navigation";
+import router from "next/router";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,19 @@ function parseDate(dateStr: string): Date {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface BookedBy {
+  email: string;
+  phone?: string;
+  firstName: string;
+  lastName: string;
+  citizenshipCountry: string;
+  residenceCountry: string;
+  language: "English" | "Spanish";
+  immigrationGoal: string;
+  timeSensitivity: "weeks" | "months" | "none";
+  timelineDetail?: string;
+}
+
 interface Slot {
   id: string;
   date: string;
@@ -73,7 +87,7 @@ interface Slot {
   durationMin: number;
   status: "available" | "booked";
   expertId: string | null;
-  bookedBy: null | { name: string; email: string };
+  bookedBy: null | BookedBy;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -833,7 +847,7 @@ function DayModal({
 }) {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
+  const router = useRouter();
   // Close on backdrop click
   const handleBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose();
@@ -1130,7 +1144,9 @@ function DayModal({
                               marginBottom: 2,
                             }}
                           >
-                            {slot.bookedBy.name || "—"}
+                            {slot.bookedBy.firstName +
+                              " " +
+                              slot.bookedBy.lastName || "—"}
                           </div>
                           <div
                             style={{
@@ -1203,6 +1219,32 @@ function DayModal({
                           >
                             {deletingId === slot.id ? <Spinner /> : null}
                             Delete
+                          </button>
+                          <button
+                            onClick={() =>
+                              router.push(
+                                `/expert/userQuery/appointment/details/${slot.id}`,
+                              )
+                            }
+                            disabled={deletingId === slot.id}
+                            style={{
+                              padding: "6px 10px",
+                              borderRadius: 7,
+                              border: `1px solid ${C.green}`,
+                              background: C.greenDim,
+                              color: C.green,
+                              cursor: "pointer",
+                              fontSize: 10,
+                              fontWeight: 700,
+                              fontFamily: fontSans,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                              opacity: deletingId === slot.id ? 0.6 : 1,
+                            }}
+                          >
+                            {deletingId === slot.id ? <Spinner /> : null}
+                            View
                           </button>
                         </div>
                       </div>
@@ -1572,8 +1614,8 @@ function CalendarOverview({
                         }}
                       >
                         {convertTo12Hour(slot.startTime)}
-                        {isBooked && slot.bookedBy?.name
-                          ? ` · ${slot.bookedBy.name.split(" ")[0]}`
+                        {isBooked && slot.bookedBy?.firstName?.trim()
+                          ? ` · ${slot.bookedBy.firstName}`
                           : ""}
                       </div>
                     );
@@ -1707,7 +1749,8 @@ function CalendarOverview({
                       marginBottom: 1,
                     }}
                   >
-                    {slot.bookedBy?.name || "—"}
+                    {slot.bookedBy?.firstName + " " + slot.bookedBy?.lastName ||
+                      "—"}
                   </div>
                   <div
                     style={{
@@ -1787,6 +1830,31 @@ function CalendarOverview({
                   >
                     {deletingId === slot.id ? <Spinner /> : null}
                     Delete
+                  </button>
+                  <button
+                    onClick={() =>
+                      router.push(
+                        `/expert/userQuery/appointment/details/${slot.id}`,
+                      )
+                    }
+                    title="Delete slot permanently"
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 7,
+                      border: `1px solid ${C.green}`,
+                      background: C.greenDim,
+                      color: C.green,
+                      cursor: "pointer",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      fontFamily: fontSans,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      opacity: deletingId === slot.id ? 0.6 : 1,
+                    }}
+                  >
+                    View
                   </button>
                 </div>
               </div>
