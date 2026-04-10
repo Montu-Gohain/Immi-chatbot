@@ -18,6 +18,19 @@ interface Conversation {
   createdAt: string;
 }
 
+interface BookedBy {
+  email: string;
+  phone?: string;
+  firstName: string;
+  lastName: string;
+  citizenshipCountry: string;
+  residenceCountry: string;
+  language: "English" | "Spanish";
+  immigrationGoal: string;
+  timeSensitivity: "weeks" | "months" | "none";
+  timelineDetail?: string;
+}
+
 interface Appointment {
   id: string;
   date: string;
@@ -28,7 +41,7 @@ interface Appointment {
   status: string;
   createdAt: string;
   updatedAt: string;
-  bookedBy: { name: string; email: string };
+  bookedBy: BookedBy;
   conversation: Conversation | null;
 }
 
@@ -43,16 +56,15 @@ function formatDate(dateStr: string) {
   });
 }
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+function initials(bookedBy: BookedBy | null) {
+  const { firstName = "", lastName = "" } = bookedBy || {};
+  return `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase().slice(0, 2);
 }
 
-// Strip markdown bold/headers for plain preview text
+function fullName(bookedBy: BookedBy) {
+  return `${bookedBy.firstName} ${bookedBy.lastName}`.trim();
+}
+
 function stripMarkdown(text: string) {
   return text
     .replace(/#{1,6}\s*/g, "")
@@ -62,9 +74,15 @@ function stripMarkdown(text: string) {
     .trim();
 }
 
+const TIME_SENSITIVITY_LABELS: Record<string, string> = {
+  weeks: "⚡ Needs to act within weeks",
+  months: "📅 Developing over next few months",
+  none: "No immediate deadline",
+};
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function Avatar({ name }: { name: string }) {
+function Avatar({ bookedBy }: { bookedBy: BookedBy }) {
   return (
     <div
       style={{
@@ -82,7 +100,7 @@ function Avatar({ name }: { name: string }) {
         fontFamily: "'DM Sans', sans-serif",
       }}
     >
-      {initials(name)}
+      {initials(bookedBy)}
     </div>
   );
 }
@@ -112,6 +130,35 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function InfoPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p
+        style={{
+          margin: 0,
+          fontSize: 11,
+          color: "#9ca3af",
+          fontWeight: 600,
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </p>
+      <p
+        style={{
+          margin: "2px 0 0",
+          fontSize: 13,
+          fontWeight: 500,
+          color: "#111827",
+        }}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
 function ConversationPreview({
   conversation,
 }: {
@@ -131,8 +178,6 @@ function ConversationPreview({
       </p>
     );
   }
-
-  // Find the first user message and the first (non-greeting) assistant reply
   const userMsg = conversation.messages.find((m) => m.role === "user");
   const assistantMsg = conversation.messages.find(
     (m) => m.role === "assistant",
@@ -209,6 +254,8 @@ function AppointmentCard({
   appointment: Appointment;
   onView: (id: string) => void;
 }) {
+  const { bookedBy } = appointment;
+
   return (
     <div
       style={{
@@ -240,7 +287,7 @@ function AppointmentCard({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Avatar name={appointment.bookedBy.name} />
+          <Avatar bookedBy={bookedBy} />
           <div>
             <p
               style={{
@@ -250,17 +297,37 @@ function AppointmentCard({
                 color: "#111827",
               }}
             >
-              {appointment.bookedBy.name}
+              {fullName(bookedBy)}
             </p>
             <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>
-              {appointment.bookedBy.email}
+              {bookedBy.email}
+              {bookedBy.phone && (
+                <span style={{ marginLeft: 8, color: "#9ca3af" }}>
+                  · {bookedBy.phone}
+                </span>
+              )}
             </p>
           </div>
         </div>
-        <StatusBadge status={appointment.status} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span
+            style={{
+              background: "#f0fdf4",
+              color: "#166534",
+              fontSize: 11,
+              fontWeight: 600,
+              padding: "2px 8px",
+              borderRadius: 20,
+              letterSpacing: "0.03em",
+            }}
+          >
+            {bookedBy.language}
+          </span>
+          <StatusBadge status={appointment.status} />
+        </div>
       </div>
 
-      {/* Time row */}
+      {/* Appointment time row */}
       <div
         style={{
           display: "flex",
@@ -279,32 +346,87 @@ function AppointmentCard({
           },
           { label: "Duration", value: `${appointment.durationMin} min` },
         ].map(({ label, value }) => (
-          <div key={label}>
-            <p
-              style={{
-                margin: 0,
-                fontSize: 11,
-                color: "#9ca3af",
-                fontWeight: 600,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-              }}
-            >
-              {label}
-            </p>
-            <p
-              style={{
-                margin: "2px 0 0",
-                fontSize: 14,
-                fontWeight: 500,
-                color: "#111827",
-              }}
-            >
-              {value}
-            </p>
-          </div>
+          <InfoPill key={label} label={label} value={value} />
         ))}
       </div>
+
+      {/* Client geography row */}
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          flexWrap: "wrap",
+          background: "#f9fafb",
+          borderRadius: 10,
+          padding: "10px 14px",
+        }}
+      >
+        <InfoPill label="Citizenship" value={bookedBy.citizenshipCountry} />
+        <InfoPill label="Residence" value={bookedBy.residenceCountry} />
+        <InfoPill
+          label="Time Sensitivity"
+          value={
+            TIME_SENSITIVITY_LABELS[bookedBy.timeSensitivity] ??
+            bookedBy.timeSensitivity
+          }
+        />
+      </div>
+
+      {/* Immigration goal */}
+      <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 14 }}>
+        <p
+          style={{
+            margin: "0 0 6px",
+            fontSize: 11,
+            fontWeight: 700,
+            color: "#9ca3af",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}
+        >
+          Immigration goal
+        </p>
+        <p
+          style={{ margin: 0, fontSize: 13, color: "#374151", lineHeight: 1.6 }}
+        >
+          {bookedBy.immigrationGoal}
+        </p>
+      </div>
+
+      {/* Timeline detail — only when time-sensitive */}
+      {bookedBy.timelineDetail && (
+        <div
+          style={{
+            background: "#fffbeb",
+            border: "1px solid #fde68a",
+            borderRadius: 10,
+            padding: "10px 14px",
+          }}
+        >
+          <p
+            style={{
+              margin: "0 0 4px",
+              fontSize: 11,
+              fontWeight: 700,
+              color: "#92400e",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+            }}
+          >
+            ⚠ Timeline / Deadline
+          </p>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 13,
+              color: "#78350f",
+              lineHeight: 1.6,
+            }}
+          >
+            {bookedBy.timelineDetail}
+          </p>
+        </div>
+      )}
 
       {/* Conversation preview */}
       <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 14 }}>
@@ -416,7 +538,6 @@ export default function AppointmentsPage() {
             Loading appointments…
           </div>
         )}
-
         {error && (
           <div
             style={{
@@ -431,7 +552,6 @@ export default function AppointmentsPage() {
             {error}
           </div>
         )}
-
         {!loading && !error && appointments.length === 0 && (
           <div
             style={{
@@ -444,7 +564,6 @@ export default function AppointmentsPage() {
             No booked appointments found.
           </div>
         )}
-
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {appointments.map((appt) => (
             <AppointmentCard
