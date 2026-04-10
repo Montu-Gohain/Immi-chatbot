@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios, { AxiosError } from "axios";
 import apiClient from "../services/axios";
 
@@ -31,9 +31,9 @@ function getFirstDayOfMonth(year: number, month: number) {
 
 interface Slot {
   id: string;
-  date: string; // "YYYY-MM-DD"
-  startTime: string; // "HH:MM"
-  endTime: string; // "HH:MM"
+  date: string;
+  startTime: string;
+  endTime: string;
   durationMin: number;
   status: string;
   expertId: string;
@@ -46,15 +46,18 @@ interface AppointmentBookingProps {
   conversationHistory?: { role: string; content: string }[];
 }
 
+interface ApiErrorResponse {
+  error: string;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatTime(time: string): string {
   const [hStr, mStr] = time.split(":");
   const h = parseInt(hStr, 10);
-  const m = mStr;
   const ampm = h < 12 ? "AM" : "PM";
   const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}:${m} ${ampm}`;
+  return `${h12}:${mStr} ${ampm}`;
 }
 
 function parseDate(dateStr: string): Date {
@@ -76,95 +79,19 @@ function useIsMobile(breakpoint = 640): boolean {
   return isMobile;
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Consultation Terms ───────────────────────────────────────────────────────
 
-const bs: Record<string, React.CSSProperties> = {
-  wrapper: {
-    background: "#fff",
-    borderRadius: 16,
-    boxShadow: "0 8px 40px rgba(0,0,0,0.12)",
-    width: "100%",
-    maxWidth: 860,
-    fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif",
-    overflow: "hidden",
-  },
-  header: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "14px 16px",
-    borderBottom: "1px solid #f1f5f9",
-  },
-  headerIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    background: "linear-gradient(135deg,#2563eb,#4f46e5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  xBtn: {
-    background: "none",
-    border: "none",
-    cursor: "pointer",
-    padding: 6,
-    borderRadius: 6,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  navBtn: {
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
-    borderRadius: 7,
-    cursor: "pointer",
-    width: 32,
-    height: 32,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#64748b",
-    flexShrink: 0,
-  },
-  input: {
-    width: "100%",
-    padding: "9px 12px",
-    borderRadius: 8,
-    border: "1.5px solid #e2e8f0",
-    fontSize: 14,
-    fontFamily: "inherit",
-    color: "#0f172a",
-    outline: "none",
-    boxSizing: "border-box" as const,
-    transition: "border-color 0.15s",
-  },
-  inputError: {
-    borderColor: "#ef4444",
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: 600,
-    color: "#64748b",
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.05em",
-    marginBottom: 4,
-    display: "block",
-  },
-  closeBtn: {
-    padding: "10px 24px",
-    borderRadius: 9,
-    border: "none",
-    background: "linear-gradient(135deg,#C41E1E,#8B0000)",
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: 700,
-    cursor: "pointer",
-    fontFamily: "inherit",
-  },
-};
+const CONSULTATION_TERMS = `This free 15-minute consultation is a preliminary informational meeting with a licensed US immigration attorney. It does not constitute legal advice and does not create an attorney-client relationship between you and VizEx, the Platform Operator, or the attorney conducting the consultation.
+
+No attorney-client relationship is formed unless you separately retain an attorney through a written engagement agreement.
+
+The consultation is conducted in the language you selected above. VizEx will confirm your appointment within 24-48 hours. If a matched attorney is not available for your selected slot, VizEx will notify you and offer the nearest available alternative.
+
+The attorney conducting your consultation is an independent licensed attorney, not an employee or agent of VizEx. VizEx is not responsible for the professional conduct of any participating attorney.
+
+There is no cost to you. You are under no obligation to retain any attorney. VizEx does not receive any portion of any legal fee from any resulting engagement.
+
+VizEx will forward a structured lead summary to your matched attorney before your consultation. This summary includes your submitted data and the AI session you completed. By submitting this form you consent to this disclosure.`;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -179,7 +106,6 @@ export default function AppointmentBooking({
 
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
-  // Pre-select today so that slots fetched async immediately render for today's date
   const [selectedDate, setSelectedDate] = useState<Date | null>(
     new Date(today),
   );
@@ -190,19 +116,32 @@ export default function AppointmentBooking({
   const [slotsError, setSlotsError] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
 
-  const [name, setName] = useState("");
+  // Form fields
   const [email, setEmail] = useState("");
-  const [nameError, setNameError] = useState("");
-  const [emailError, setEmailError] = useState("");
+  const [phone, setPhone] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [citizenshipCountry, setCitizenshipCountry] = useState("");
+  const [residenceCountry, setResidenceCountry] = useState("");
+  const [language, setLanguage] = useState<"English" | "Spanish" | "">("");
+  const [immigrationGoal, setImmigrationGoal] = useState("");
+  const [timeSensitivity, setTimeSensitivity] = useState<
+    "weeks" | "months" | "none" | ""
+  >("");
+  const [timelineDetail, setTimelineDetail] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
+  // Errors
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  // On mobile, track which step the user is on: "calendar" | "times"
   const [mobileStep, setMobileStep] = useState<"calendar" | "times">(
     "calendar",
   );
+
+  const goalCharCount = immigrationGoal.length;
 
   useEffect(() => {
     const fetchSlots = async () => {
@@ -221,8 +160,6 @@ export default function AppointmentBooking({
             axiosError.response?.data?.error ??
               "Failed to load available slots.",
           );
-        } else if (err instanceof Error) {
-          setSlotsError(err.message);
         } else {
           setSlotsError("Failed to load available slots.");
         }
@@ -259,7 +196,6 @@ export default function AppointmentBooking({
     today.getDate() === day &&
     today.getMonth() === viewMonth &&
     today.getFullYear() === viewYear;
-
   const hasSlots = (day: number): boolean => {
     const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     return allSlots.some((s) => s.date === dateStr);
@@ -270,7 +206,6 @@ export default function AppointmentBooking({
     setSelectedDate(new Date(viewYear, viewMonth, day));
     setSelectedSlot(null);
     setBookingError(null);
-    // On mobile, advance to the times step after picking a date
     if (isMobile) setMobileStep("times");
   };
 
@@ -288,25 +223,36 @@ export default function AppointmentBooking({
     : [];
 
   const validate = (): boolean => {
-    let ok = true;
-    if (!name.trim()) {
-      setNameError("Full name is required.");
-      ok = false;
-    } else setNameError("");
+    const newErrors: Record<string, string> = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email.trim()) {
-      setEmailError("Email address is required.");
-      ok = false;
-    } else if (!emailRegex.test(email)) {
-      setEmailError("Enter a valid email address.");
-      ok = false;
-    } else setEmailError("");
-    return ok;
-  };
 
-  interface ApiErrorResponse {
-    error: string;
-  }
+    if (!email.trim()) newErrors.email = "Email address is required.";
+    else if (!emailRegex.test(email))
+      newErrors.email = "Enter a valid email address.";
+    if (!firstName.trim()) newErrors.firstName = "First name is required.";
+    if (!lastName.trim()) newErrors.lastName = "Last name is required.";
+    if (!citizenshipCountry.trim())
+      newErrors.citizenshipCountry = "Country of citizenship is required.";
+    if (!residenceCountry.trim())
+      newErrors.residenceCountry = "Country of residence is required.";
+    if (!language) newErrors.language = "Please select a preferred language.";
+    if (!immigrationGoal.trim())
+      newErrors.immigrationGoal = "Please describe your immigration goal.";
+    if (!timeSensitivity)
+      newErrors.timeSensitivity = "Please select a time sensitivity option.";
+    if (
+      (timeSensitivity === "weeks" || timeSensitivity === "months") &&
+      !timelineDetail.trim()
+    )
+      newErrors.timelineDetail =
+        "Please briefly describe your timeline or deadline.";
+    if (!termsAccepted)
+      newErrors.terms =
+        "Please confirm you have read and accept the consultation terms.";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async () => {
     if (!selectedDate || !selectedSlot) return;
@@ -317,7 +263,18 @@ export default function AppointmentBooking({
       await apiClient.post("/immi-mangage-appointments", {
         action: "book",
         slotId: selectedSlot.id,
-        bookedBy: { name: name.trim(), email: email.trim() },
+        bookedBy: {
+          email: email.trim(),
+          phone: phone.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          citizenshipCountry: citizenshipCountry.trim(),
+          residenceCountry: residenceCountry.trim(),
+          language,
+          immigrationGoal: immigrationGoal.trim(),
+          timeSensitivity,
+          timelineDetail: timelineDetail.trim(),
+        },
         messages: conversationHistory.map((m) => ({
           role: m.role,
           text: m.content,
@@ -332,8 +289,6 @@ export default function AppointmentBooking({
           axiosError.response?.data?.error ??
             "Booking failed. Please try again.",
         );
-      } else if (err instanceof Error) {
-        setBookingError(err.message);
       } else {
         setBookingError("Booking failed. Please try again.");
       }
@@ -342,31 +297,14 @@ export default function AppointmentBooking({
     }
   };
 
+  const canSubmit = !!(selectedDate && selectedSlot);
+
   // ── Success screen ───────────────────────────────────────────────────────
   if (submitted && selectedDate && selectedSlot) {
     return (
-      <div style={bs.wrapper}>
-        <div
-          style={{
-            padding: isMobile ? "36px 20px" : "48px 32px",
-            textAlign: "center",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
-          <div
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: "50%",
-              background: "#dcfce7",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden font-sans">
+        <div className="flex flex-col items-center gap-3 py-16 px-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
             <svg
               width="28"
               height="28"
@@ -380,41 +318,22 @@ export default function AppointmentBooking({
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
-          <p
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              color: "#0f172a",
-              margin: 0,
-            }}
-          >
+          <p className="text-xl font-bold text-slate-900 m-0">
             Appointment Requested!
           </p>
-          <p
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: "#16a34a",
-              margin: 0,
-            }}
-          >
+          <p className="text-sm font-semibold text-green-600 m-0">
             {MONTHS[selectedDate.getMonth()]} {selectedDate.getDate()},{" "}
             {selectedDate.getFullYear()} · {formatTime(selectedSlot.startTime)}
           </p>
-          <p
-            style={{
-              fontSize: 13,
-              color: "#64748b",
-              maxWidth: 340,
-              lineHeight: 1.6,
-              margin: "4px 0 8px",
-            }}
-          >
-            Hi <strong>{name}</strong>, a confirmation will be sent to{" "}
+          <p className="text-sm text-slate-500 max-w-sm leading-relaxed mt-1 mb-2">
+            Hi <strong>{firstName}</strong>, a confirmation will be sent to{" "}
             <strong>{email}</strong>. A consultant will confirm your slot within
             1–2 business days.
           </p>
-          <button onClick={onClose} style={bs.closeBtn}>
+          <button
+            onClick={onClose}
+            className="px-7 py-2.5 rounded-xl border-none bg-gradient-to-br from-red-700 to-red-900 text-white text-sm font-bold cursor-pointer"
+          >
             Back to Chat
           </button>
         </div>
@@ -422,34 +341,33 @@ export default function AppointmentBooking({
     );
   }
 
-  const canSubmit = !!(
-    selectedDate &&
-    selectedSlot &&
-    name.trim() &&
-    email.trim()
-  );
+  // ── Field error helper ───────────────────────────────────────────────────
+  const FieldError = ({ field }: { field: string }) =>
+    errors[field] ? (
+      <p className="text-xs text-red-500 mt-1">{errors[field]}</p>
+    ) : null;
+
+  const inputClass = (field: string) =>
+    `w-full px-3 py-2.5 rounded-lg border text-sm text-slate-800 outline-none transition-colors font-[inherit] ${
+      errors[field]
+        ? "border-red-400 bg-red-50"
+        : "border-slate-200 bg-white focus:border-blue-500"
+    }`;
+
+  const labelClass =
+    "block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1";
 
   // ── Calendar panel ────────────────────────────────────────────────────────
   const CalendarPanel = (
     <div
-      style={{
-        flex: isMobile ? undefined : "0 0 auto",
-        width: isMobile ? "100%" : 380,
-        padding: isMobile ? "16px" : "20px 22px",
-        borderRight: isMobile ? "none" : "1px solid #f1f5f9",
-        borderBottom: isMobile ? "1px solid #f1f5f9" : "none",
-      }}
+      className={`${isMobile ? "w-full p-4" : "flex-none w-[340px] p-5"} border-b sm:border-b-0 sm:border-r border-slate-100`}
     >
       {/* Month nav */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 16,
-        }}
-      >
-        <button style={bs.navBtn} onClick={prevMonth}>
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={prevMonth}
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-200 text-slate-500 cursor-pointer hover:bg-slate-100 transition-colors"
+        >
           <svg
             width="14"
             height="14"
@@ -463,10 +381,13 @@ export default function AppointmentBooking({
             <polyline points="10,3 5,8 10,13" />
           </svg>
         </button>
-        <span style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>
+        <span className="text-sm font-bold text-slate-900">
           {MONTHS[viewMonth]} {viewYear}
         </span>
-        <button style={bs.navBtn} onClick={nextMonth}>
+        <button
+          onClick={nextMonth}
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-200 text-slate-500 cursor-pointer hover:bg-slate-100 transition-colors"
+        >
           <svg
             width="14"
             height="14"
@@ -483,25 +404,11 @@ export default function AppointmentBooking({
       </div>
 
       {/* Day labels */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7,1fr)",
-          marginBottom: 6,
-        }}
-      >
+      <div className="grid grid-cols-7 mb-1.5">
         {DAYS.map((d) => (
           <div
             key={d}
-            style={{
-              textAlign: "center",
-              fontSize: 10,
-              fontWeight: 600,
-              color: "#94a3b8",
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-              padding: "3px 0",
-            }}
+            className="text-center text-[10px] font-semibold text-slate-400 uppercase tracking-wider py-1"
           >
             {d}
           </div>
@@ -509,13 +416,7 @@ export default function AppointmentBooking({
       </div>
 
       {/* Day grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7,1fr)",
-          gap: isMobile ? 2 : 3,
-        }}
-      >
+      <div className="grid grid-cols-7 gap-0.5">
         {Array.from({ length: firstWeekday }).map((_, i) => (
           <div key={`e${i}`} />
         ))}
@@ -523,7 +424,6 @@ export default function AppointmentBooking({
           const past = isPast(day);
           const sel = isSelected(day);
           const tod = isToday(day);
-          const hov = hoveredDay === day && !past && !sel;
           const hasDot = !past && hasSlots(day) && !sel;
           return (
             <button
@@ -532,52 +432,23 @@ export default function AppointmentBooking({
               onMouseEnter={() => !past && setHoveredDay(day)}
               onMouseLeave={() => setHoveredDay(null)}
               disabled={past}
-              style={{
-                position: "relative",
-                aspectRatio: "1",
-                border: "none",
-                borderRadius: 8,
-                fontSize: isMobile ? 12 : 13,
-                fontWeight: sel || tod ? 700 : 500,
-                cursor: past ? "not-allowed" : "pointer",
-                transition: "all 0.12s",
-                fontFamily: "inherit",
-                background: sel
-                  ? "#2563eb"
-                  : tod
-                    ? "#dbeafe"
-                    : hov
-                      ? "#f1f5f9"
-                      : "transparent",
-                color: sel
-                  ? "#fff"
-                  : tod
-                    ? "#1d4ed8"
-                    : past
-                      ? "#cbd5e1"
-                      : "#334155",
-                boxShadow: sel ? "0 2px 6px rgba(37,99,235,0.35)" : "none",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexDirection: "column",
-                gap: 1,
-                // Larger tap targets on mobile
-                minHeight: isMobile ? 38 : undefined,
-              }}
+              className={`
+                relative aspect-square rounded-lg text-[13px] font-medium border-none cursor-pointer transition-all flex flex-col items-center justify-center gap-px
+                ${isMobile ? "min-h-[38px] text-xs" : ""}
+                ${
+                  sel
+                    ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-200"
+                    : tod
+                      ? "bg-blue-100 text-blue-700 font-bold"
+                      : past
+                        ? "text-slate-300 cursor-not-allowed bg-transparent"
+                        : "text-slate-600 bg-transparent hover:bg-slate-100"
+                }
+              `}
             >
               {day}
               {hasDot && (
-                <span
-                  style={{
-                    width: 4,
-                    height: 4,
-                    borderRadius: "50%",
-                    background: "#22c55e",
-                    position: "absolute",
-                    bottom: isMobile ? 3 : 4,
-                  }}
-                />
+                <span className="w-1 h-1 rounded-full bg-green-500 absolute bottom-1" />
               )}
             </button>
           );
@@ -585,41 +456,22 @@ export default function AppointmentBooking({
       </div>
 
       {/* Legend */}
-      <div
-        style={{
-          display: "flex",
-          gap: isMobile ? 10 : 14,
-          marginTop: 12,
-          paddingTop: 10,
-          borderTop: "1px solid #f1f5f9",
-          flexWrap: "wrap",
-        }}
-      >
+      <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-slate-100">
         {[
-          { color: "#1d4ed8", bg: "#dbeafe", label: "Today" },
-          { color: "#fff", bg: "#2563eb", label: "Selected" },
-          { color: "#cbd5e1", bg: "transparent", label: "Unavailable" },
-          { color: "#22c55e", bg: "#22c55e", label: "Has slots", dot: true },
+          { color: "bg-blue-100 border border-blue-400", label: "Today" },
+          { color: "bg-blue-600", label: "Selected" },
+          {
+            color: "bg-transparent border border-slate-300",
+            label: "Unavailable",
+          },
+          { color: "bg-green-500", label: "Has slots", dot: true },
         ].map((l) => (
           <span
             key={l.label}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              fontSize: 10,
-              color: "#94a3b8",
-            }}
+            className="flex items-center gap-1.5 text-[10px] text-slate-400"
           >
             <span
-              style={{
-                width: l.dot ? 6 : 8,
-                height: l.dot ? 6 : 8,
-                borderRadius: "50%",
-                background: l.bg,
-                border: l.dot ? "none" : `1px solid ${l.color}`,
-                display: "inline-block",
-              }}
+              className={`${l.dot ? "w-1.5 h-1.5 rounded-full" : "w-2 h-2 rounded-sm"} inline-block ${l.color}`}
             />
             {l.label}
           </span>
@@ -627,257 +479,402 @@ export default function AppointmentBooking({
       </div>
 
       {slotsError && (
-        <p
-          style={{
-            fontSize: 12,
-            color: "#ef4444",
-            marginTop: 10,
-            textAlign: "center",
-          }}
-        >
-          {slotsError}
-        </p>
+        <p className="text-xs text-red-500 mt-3 text-center">{slotsError}</p>
       )}
     </div>
   );
 
-  // ── Times panel ───────────────────────────────────────────────────────────
+  // ── Times + Form panel ────────────────────────────────────────────────────
   const TimesPanel = (
-    <div
-      style={{
-        flex: 1,
-        padding: isMobile ? "16px" : "20px 22px",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Mobile: back button */}
-      {isMobile && (
-        <button
-          onClick={() => {
-            setMobileStep("calendar");
-            setSelectedSlot(null);
-          }}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: 13,
-            color: "#2563eb",
-            fontWeight: 600,
-            padding: "0 0 12px",
-            fontFamily: "inherit",
-          }}
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="10,3 5,8 10,13" />
-          </svg>
-          Back to calendar
-        </button>
-      )}
-
-      <p
-        style={{
-          fontSize: 14,
-          fontWeight: 700,
-          color: "#0f172a",
-          margin: "0 0 2px",
-        }}
-      >
-        {selectedDate
-          ? `${MONTHS[selectedDate.getMonth()]} ${selectedDate.getDate()}`
-          : "Select a date"}
-      </p>
-      <p
-        style={{
-          fontSize: 11,
-          color: "#94a3b8",
-          margin: "0 0 14px",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-        }}
-      >
-        {slotsLoading
-          ? "Loading slots…"
-          : slotsForDate.length > 0
-            ? `${slotsForDate.length} slot${slotsForDate.length > 1 ? "s" : ""} available`
-            : selectedDate
-              ? "No slots available"
-              : "Available · 1 hr each"}
-      </p>
-
-      {/* Time slot grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: isMobile ? "repeat(3, 1fr)" : "1fr 1fr",
-          gap: 6,
-          marginBottom: 18,
-        }}
-      >
-        {/* While fetching, show skeleton slot buttons */}
-        {slotsLoading &&
-          Array.from({ length: 6 }).map((_, i) => (
-            <button
-              key={"sk" + i}
-              disabled
-              style={{
-                padding: isMobile ? "10px 4px" : "9px 6px",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 500,
-                cursor: "not-allowed",
-                fontFamily: "inherit",
-                textAlign: "center",
-                background: "#f1f5f9",
-                color: "#cbd5e1",
-                border: "1.5px solid #f1f5f9",
-              }}
-            >
-              ——
-            </button>
-          ))}
-        {/* No slots message — only shown after fetch completes */}
-        {!slotsLoading && selectedDate && slotsForDate.length === 0 && (
-          <p
-            style={{
-              gridColumn: "1/-1",
-              fontSize: 13,
-              color: "#94a3b8",
-              margin: 0,
+    <div className="flex-1 flex flex-col overflow-y-auto max-h-[75vh] sm:max-h-[600px]">
+      <div className="p-4 sm:p-5">
+        {/* Mobile: back button */}
+        {isMobile && (
+          <button
+            onClick={() => {
+              setMobileStep("calendar");
+              setSelectedSlot(null);
             }}
+            className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer text-sm text-blue-600 font-semibold pb-3 font-[inherit]"
           >
-            No available slots for this date. Try another day.
-          </p>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="10,3 5,8 10,13" />
+            </svg>
+            Back to calendar
+          </button>
         )}
-        {/* Actual slot buttons */}
-        {!slotsLoading &&
-          slotsForDate.map((slot) => {
-            const active = selectedSlot?.id === slot.id;
-            return (
-              <button
-                key={slot.id}
-                onClick={() => {
-                  setSelectedSlot(slot);
-                  setBookingError(null);
-                }}
-                style={{
-                  padding: isMobile ? "10px 4px" : "9px 6px",
-                  borderRadius: 8,
-                  fontSize: isMobile ? 11 : 12,
-                  fontWeight: active ? 700 : 500,
-                  cursor: "pointer",
-                  transition: "all 0.12s",
-                  fontFamily: "inherit",
-                  textAlign: "center",
-                  background: active ? "#2563eb" : "#fff",
-                  color: active ? "#fff" : "#334155",
-                  border: `1.5px solid ${active ? "#2563eb" : "#e2e8f0"}`,
-                  boxShadow: active ? "0 2px 6px rgba(37,99,235,0.3)" : "none",
-                }}
-              >
-                {formatTime(slot.startTime)}
-              </button>
-            );
-          })}
-      </div>
 
-      {/* User info fields */}
-      {selectedSlot && (
+        <p className="text-sm font-bold text-slate-900 m-0">
+          {selectedDate
+            ? `${MONTHS[selectedDate.getMonth()]} ${selectedDate.getDate()}`
+            : "Select a date"}
+        </p>
+        <p className="text-[11px] text-slate-400 mt-0.5 mb-3 uppercase tracking-wide">
+          {slotsLoading
+            ? "Loading slots…"
+            : slotsForDate.length > 0
+              ? `${slotsForDate.length} slot${slotsForDate.length > 1 ? "s" : ""} available`
+              : selectedDate
+                ? "No slots available"
+                : "Available · 1 hr each"}
+        </p>
+
+        {/* Time slot grid */}
         <div
-          style={{
-            borderTop: "1px solid #f1f5f9",
-            paddingTop: 16,
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}
+          className={`grid gap-1.5 mb-5 ${isMobile ? "grid-cols-3" : "grid-cols-2"}`}
         >
-          <p
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: "#334155",
-              margin: 0,
-            }}
-          >
-            Your Details
-          </p>
-          <div>
-            <label style={bs.label}>Full Name</label>
-            <input
-              type="text"
-              placeholder="e.g. John Wick"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                if (nameError) setNameError("");
-              }}
-              style={{ ...bs.input, ...(nameError ? bs.inputError : {}) }}
-            />
-            {nameError && (
-              <p style={{ fontSize: 11, color: "#ef4444", margin: "4px 0 0" }}>
-                {nameError}
-              </p>
-            )}
-          </div>
-          <div>
-            <label style={bs.label}>Email Address</label>
-            <input
-              type="email"
-              placeholder="e.g. john@example.com"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (emailError) setEmailError("");
-              }}
-              style={{ ...bs.input, ...(emailError ? bs.inputError : {}) }}
-            />
-            {emailError && (
-              <p style={{ fontSize: 11, color: "#ef4444", margin: "4px 0 0" }}>
-                {emailError}
-              </p>
-            )}
-          </div>
-          {bookingError && (
-            <p
-              style={{
-                fontSize: 12,
-                color: "#ef4444",
-                background: "#fef2f2",
-                border: "1px solid #fecaca",
-                borderRadius: 7,
-                padding: "8px 12px",
-                margin: 0,
-              }}
-            >
-              {bookingError}
+          {slotsLoading &&
+            Array.from({ length: 6 }).map((_, i) => (
+              <button
+                key={"sk" + i}
+                disabled
+                className="py-2.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-300 border border-slate-100 cursor-not-allowed"
+              >
+                ——
+              </button>
+            ))}
+          {!slotsLoading && selectedDate && slotsForDate.length === 0 && (
+            <p className="col-span-full text-sm text-slate-400">
+              No available slots for this date. Try another day.
             </p>
           )}
+          {!slotsLoading &&
+            slotsForDate.map((slot) => {
+              const active = selectedSlot?.id === slot.id;
+              return (
+                <button
+                  key={slot.id}
+                  onClick={() => {
+                    setSelectedSlot(slot);
+                    setBookingError(null);
+                  }}
+                  className={`
+                  py-2.5 rounded-lg text-xs font-medium transition-all cursor-pointer border font-[inherit] text-center
+                  ${
+                    active
+                      ? "bg-blue-600 text-white border-blue-600 font-bold shadow-md shadow-blue-200"
+                      : "bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50"
+                  }
+                `}
+                >
+                  {formatTime(slot.startTime)}
+                </button>
+              );
+            })}
         </div>
-      )}
+
+        {/* ── Extended Form ───────────────────────────────────────────── */}
+        {selectedSlot && (
+          <div className="border-t border-slate-100 pt-4 flex flex-col gap-4">
+            <p className="text-xs font-bold text-slate-700 uppercase tracking-wider m-0">
+              Your Details
+            </p>
+
+            {/* Field 1 — Email */}
+            <div>
+              <label className={labelClass}>
+                Email Address <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors((p) => ({ ...p, email: "" }));
+                }}
+                className={inputClass("email")}
+              />
+              <FieldError field="email" />
+            </div>
+
+            {/* Field 2 — Phone */}
+            <div>
+              <label className={labelClass}>Phone / WhatsApp</label>
+              <input
+                type="tel"
+                placeholder="+1 (305) 000-0000"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-800 outline-none transition-colors font-[inherit] focus:border-blue-500"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">
+                Optional — useful if we need to reach you about your
+                appointment.
+              </p>
+            </div>
+
+            {/* Row 3 — Name */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>
+                  First Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="First name"
+                  value={firstName}
+                  onChange={(e) => {
+                    setFirstName(e.target.value);
+                    if (errors.firstName)
+                      setErrors((p) => ({ ...p, firstName: "" }));
+                  }}
+                  className={inputClass("firstName")}
+                />
+                <FieldError field="firstName" />
+              </div>
+              <div>
+                <label className={labelClass}>
+                  Last Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Last name"
+                  value={lastName}
+                  onChange={(e) => {
+                    setLastName(e.target.value);
+                    if (errors.lastName)
+                      setErrors((p) => ({ ...p, lastName: "" }));
+                  }}
+                  className={inputClass("lastName")}
+                />
+                <FieldError field="lastName" />
+              </div>
+            </div>
+
+            {/* Row 4 — Geography */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>
+                  Country of Citizenship <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Brazil, India, Mexico…"
+                  value={citizenshipCountry}
+                  onChange={(e) => {
+                    setCitizenshipCountry(e.target.value);
+                    if (errors.citizenshipCountry)
+                      setErrors((p) => ({ ...p, citizenshipCountry: "" }));
+                  }}
+                  className={inputClass("citizenshipCountry")}
+                />
+                <FieldError field="citizenshipCountry" />
+              </div>
+              <div>
+                <label className={labelClass}>
+                  Country of Residence <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. United States, Mexico…"
+                  value={residenceCountry}
+                  onChange={(e) => {
+                    setResidenceCountry(e.target.value);
+                    if (errors.residenceCountry)
+                      setErrors((p) => ({ ...p, residenceCountry: "" }));
+                  }}
+                  className={inputClass("residenceCountry")}
+                />
+                <FieldError field="residenceCountry" />
+              </div>
+            </div>
+
+            {/* Field 5 — Language */}
+            <div>
+              <label className={labelClass}>
+                Preferred Consultation Language{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-5 mt-1">
+                {(["English", "Spanish"] as const).map((lang) => (
+                  <label
+                    key={lang}
+                    className="flex items-center gap-2 cursor-pointer text-sm text-slate-700 font-medium"
+                  >
+                    <input
+                      type="radio"
+                      name="language"
+                      value={lang}
+                      checked={language === lang}
+                      onChange={() => {
+                        setLanguage(lang);
+                        if (errors.language)
+                          setErrors((p) => ({ ...p, language: "" }));
+                      }}
+                      className="accent-blue-600 w-4 h-4 cursor-pointer"
+                    />
+                    {lang}
+                  </label>
+                ))}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1.5">
+                If you require another language, please note it in the goal
+                field below and we will confirm availability.
+              </p>
+              <FieldError field="language" />
+            </div>
+
+            {/* Field 6 — Immigration goal */}
+            <div>
+              <label className={labelClass}>
+                What are you trying to accomplish?{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                placeholder="In one or two sentences — e.g. 'I want to bring my spouse to the US' or 'My employer is considering sponsoring me for an H-1B'"
+                value={immigrationGoal}
+                maxLength={500}
+                onChange={(e) => {
+                  if (e.target.value.length <= 500) {
+                    setImmigrationGoal(e.target.value);
+                    if (errors.immigrationGoal)
+                      setErrors((p) => ({ ...p, immigrationGoal: "" }));
+                  }
+                }}
+                className={`${inputClass("immigrationGoal")} resize-y min-h-[80px]`}
+              />
+              <div className="flex justify-between items-center mt-1">
+                <FieldError field="immigrationGoal" />
+                <span
+                  className={`text-[11px] ml-auto ${
+                    goalCharCount >= 500
+                      ? "text-red-500 font-semibold"
+                      : goalCharCount >= 300
+                        ? "text-amber-500"
+                        : goalCharCount >= 200
+                          ? "text-slate-500"
+                          : "text-transparent"
+                  }`}
+                >
+                  {goalCharCount >= 200 &&
+                    (goalCharCount >= 300
+                      ? `Focus on the most important detail. (${goalCharCount}/500)`
+                      : `${goalCharCount}/500`)}
+                </span>
+              </div>
+            </div>
+
+            {/* Field 7 — Time sensitivity */}
+            <div>
+              <label className={labelClass}>
+                Is there anything time-sensitive about your situation?{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <div className="flex flex-col gap-2 mt-1">
+                {[
+                  { value: "weeks", label: "Yes — I need to act within weeks" },
+                  {
+                    value: "months",
+                    label: "Yes — developing over the next few months",
+                  },
+                  {
+                    value: "none",
+                    label: "No immediate deadline that I am aware of",
+                  },
+                ].map((opt) => (
+                  <label
+                    key={opt.value}
+                    className="flex items-start gap-2 cursor-pointer text-sm text-slate-700"
+                  >
+                    <input
+                      type="radio"
+                      name="timeSensitivity"
+                      value={opt.value}
+                      checked={timeSensitivity === opt.value}
+                      onChange={() => {
+                        setTimeSensitivity(opt.value as typeof timeSensitivity);
+                        if (errors.timeSensitivity)
+                          setErrors((p) => ({ ...p, timeSensitivity: "" }));
+                        if (opt.value === "none") setTimelineDetail("");
+                      }}
+                      className="accent-blue-600 w-4 h-4 cursor-pointer mt-0.5 shrink-0"
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+              <FieldError field="timeSensitivity" />
+
+              {/* Conditional timeline textarea */}
+              {(timeSensitivity === "weeks" ||
+                timeSensitivity === "months") && (
+                <div className="mt-3">
+                  <label className={labelClass}>
+                    Please briefly describe the timeline or deadline{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    placeholder="e.g. My current visa expires in 6 weeks…"
+                    value={timelineDetail}
+                    onChange={(e) => {
+                      setTimelineDetail(e.target.value);
+                      if (errors.timelineDetail)
+                        setErrors((p) => ({ ...p, timelineDetail: "" }));
+                    }}
+                    className={`${inputClass("timelineDetail")} resize-y min-h-[60px]`}
+                  />
+                  <FieldError field="timelineDetail" />
+                </div>
+              )}
+            </div>
+
+            {/* Consultation Terms */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 mt-1">
+              <p className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Terms of this consultation
+              </p>
+              <div className="text-[12px] text-slate-500 leading-relaxed whitespace-pre-line max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                {CONSULTATION_TERMS}
+              </div>
+            </div>
+
+            {/* Terms checkbox */}
+            <div>
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => {
+                    setTermsAccepted(e.target.checked);
+                    if (errors.terms) setErrors((p) => ({ ...p, terms: "" }));
+                  }}
+                  className="accent-blue-600 w-4 h-4 mt-0.5 cursor-pointer shrink-0"
+                />
+                <span className="text-sm text-slate-700 leading-snug">
+                  I have read and accept the consultation terms above.
+                </span>
+              </label>
+              <FieldError field="terms" />
+            </div>
+
+            {bookingError && (
+              <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+                {bookingError}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 
   // ── Main UI ──────────────────────────────────────────────────────────────
   return (
-    <div style={bs.wrapper}>
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden font-sans">
       {/* Header */}
-      <div style={bs.header}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={bs.headerIcon}>
+      <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0">
             <svg
               width="17"
               height="17"
@@ -895,24 +892,20 @@ export default function AppointmentBooking({
             </svg>
           </div>
           <div>
-            <p
-              style={{
-                fontSize: isMobile ? 13 : 14,
-                fontWeight: 700,
-                color: "#0f172a",
-                margin: 0,
-              }}
-            >
+            <p className="text-sm font-bold text-slate-900 m-0">
               Schedule a Consultation
             </p>
-            <p style={{ fontSize: 11, color: "#64748b", margin: 0 }}>
+            <p className="text-[11px] text-slate-500 m-0">
               {isMobile
                 ? "Select a date & time"
                 : "Select a date & time with an immigration expert"}
             </p>
           </div>
         </div>
-        <button onClick={onClose} style={bs.xBtn}>
+        <button
+          onClick={onClose}
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-transparent border-none cursor-pointer hover:bg-slate-100 transition-colors"
+        >
           <svg
             width="15"
             height="15"
@@ -930,22 +923,18 @@ export default function AppointmentBooking({
 
       {/* Mobile step indicator */}
       {isMobile && (
-        <div style={{ display: "flex", borderBottom: "1px solid #f1f5f9" }}>
+        <div className="flex border-b border-slate-100">
           {(["calendar", "times"] as const).map((step, idx) => (
             <div
               key={step}
-              style={{
-                flex: 1,
-                padding: "8px 0",
-                textAlign: "center",
-                fontSize: 11,
-                fontWeight: 600,
-                color: mobileStep === step ? "#2563eb" : "#94a3b8",
-                borderBottom: `2px solid ${mobileStep === step ? "#2563eb" : "transparent"}`,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                transition: "all 0.15s",
-              }}
+              className={`
+                flex-1 py-2 text-center text-[11px] font-semibold uppercase tracking-wide transition-all
+                ${
+                  mobileStep === step
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-slate-400 border-b-2 border-transparent"
+                }
+              `}
             >
               {idx + 1}. {step === "calendar" ? "Choose Date" : "Choose Time"}
             </div>
@@ -955,14 +944,8 @@ export default function AppointmentBooking({
 
       {/* Body */}
       <div
-        style={{
-          display: "flex",
-          flexDirection: isMobile ? "column" : "row",
-          gap: 0,
-          minHeight: isMobile ? undefined : 380,
-        }}
+        className={`flex ${isMobile ? "flex-col" : "flex-row"} min-h-[380px]`}
       >
-        {/* On mobile, show only the active step */}
         {isMobile ? (
           mobileStep === "calendar" ? (
             CalendarPanel
@@ -979,27 +962,12 @@ export default function AppointmentBooking({
 
       {/* Footer */}
       <div
-        style={{
-          display: "flex",
-          alignItems: isMobile ? "stretch" : "center",
-          flexDirection: isMobile ? "column" : "row",
-          justifyContent: "space-between",
-          padding: isMobile ? "12px 16px" : "14px 22px",
-          borderTop: "1px solid #f1f5f9",
-          background: "#f8fafc",
-          gap: 10,
-        }}
+        className={`
+        flex border-t border-slate-100 bg-slate-50
+        ${isMobile ? "flex-col items-stretch gap-2.5 px-4 py-3" : "flex-row items-center justify-between px-5 py-3.5 gap-3"}
+      `}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 13,
-            color: "#64748b",
-            flex: 1,
-          }}
-        >
+        <div className="flex items-center gap-1.5 text-sm text-slate-500 flex-1">
           {selectedDate && selectedSlot ? (
             <>
               <svg
@@ -1015,11 +983,7 @@ export default function AppointmentBooking({
                 <polyline points="20 6 9 17 4 12" />
               </svg>
               <span
-                style={{
-                  color: "#16a34a",
-                  fontWeight: 600,
-                  fontSize: isMobile ? 12 : 13,
-                }}
+                className={`text-green-600 font-semibold ${isMobile ? "text-xs" : "text-sm"}`}
               >
                 {MONTHS[selectedDate.getMonth()]} {selectedDate.getDate()},{" "}
                 {selectedDate.getFullYear()} ·{" "}
@@ -1027,7 +991,9 @@ export default function AppointmentBooking({
               </span>
             </>
           ) : (
-            <span style={{ color: "#94a3b8", fontSize: isMobile ? 12 : 13 }}>
+            <span
+              className={`text-slate-400 ${isMobile ? "text-xs" : "text-sm"}`}
+            >
               {!selectedDate
                 ? "Pick a date →"
                 : !selectedSlot
@@ -1040,32 +1006,16 @@ export default function AppointmentBooking({
         <button
           onClick={handleSubmit}
           disabled={!canSubmit || bookingLoading}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 7,
-            padding: isMobile ? "13px 16px" : "11px 22px",
-            borderRadius: 9,
-            border: "none",
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: canSubmit && !bookingLoading ? "pointer" : "not-allowed",
-            fontFamily: "inherit",
-            transition: "all 0.15s",
-            whiteSpace: "nowrap",
-            width: isMobile ? "100%" : "auto",
-            background:
+          className={`
+            flex items-center justify-center gap-1.5 rounded-xl border-none text-sm font-bold cursor-pointer transition-all whitespace-nowrap font-[inherit]
+            ${isMobile ? "w-full py-3.5 px-4" : "py-2.5 px-5"}
+            ${
               canSubmit && !bookingLoading
-                ? "linear-gradient(135deg,#C41E1E,#8B0000)"
-                : "#e2e8f0",
-            color: canSubmit && !bookingLoading ? "#fff" : "#94a3b8",
-            boxShadow:
-              canSubmit && !bookingLoading
-                ? "0 3px 12px rgba(37,99,235,0.35)"
-                : "none",
-            opacity: bookingLoading ? 0.75 : 1,
-          }}
+                ? "bg-gradient-to-br from-red-700 to-red-900 text-white shadow-lg shadow-red-200 hover:from-red-800 hover:to-red-950"
+                : "bg-slate-200 text-slate-400 cursor-not-allowed"
+            }
+            ${bookingLoading ? "opacity-75" : ""}
+          `}
         >
           {bookingLoading ? (
             <>
@@ -1105,7 +1055,7 @@ export default function AppointmentBooking({
               >
                 <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.0 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z" />
               </svg>
-              Confirm Appointment
+              Submit consultation request
             </>
           )}
         </button>
