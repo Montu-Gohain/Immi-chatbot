@@ -74,7 +74,7 @@ interface BookedBy {
   citizenshipCountry: string;
   residenceCountry: string;
   language: "English" | "Spanish";
-  immigrationGoal: string;
+  VizExgrationGoal: string;
   timeSensitivity: "weeks" | "months" | "none";
   timelineDetail?: string;
 }
@@ -417,7 +417,7 @@ function SlotCreator({ onCreated }: { onCreated: () => void }) {
     setError(null);
     setSuccess(null);
     try {
-      const res = await apiClient.post("/immi-mangage-appointments", {
+      const res = await apiClient.post("/VizEx-mangage-appointments", {
         action: "create",
         date: selectedDateStr,
         startTime,
@@ -865,7 +865,7 @@ function DayModal({
   const handleCancel = async (slotId: string) => {
     setCancellingId(slotId);
     try {
-      await apiClient.post("/immi-mangage-appointments", {
+      await apiClient.post("/VizEx-mangage-appointments", {
         action: "cancel",
         slotId,
       });
@@ -880,7 +880,7 @@ function DayModal({
     if (!window.confirm("Delete this slot permanently?")) return;
     setDeletingId(slotId);
     try {
-      await apiClient.post("/immi-mangage-appointments", {
+      await apiClient.post("/VizEx-mangage-appointments", {
         action: "delete",
         slotId,
       });
@@ -1351,7 +1351,7 @@ function CalendarOverview({
   const handleCancel = async (slotId: string) => {
     setCancellingId(slotId);
     try {
-      await apiClient.post("/immi-mangage-appointments", {
+      await apiClient.post("/VizEx-mangage-appointments", {
         action: "cancel",
         slotId,
       });
@@ -1366,7 +1366,7 @@ function CalendarOverview({
     if (!window.confirm("Delete this slot permanently?")) return;
     setDeletingId(slotId);
     try {
-      await apiClient.post("/immi-mangage-appointments", {
+      await apiClient.post("/VizEx-mangage-appointments", {
         action: "delete",
         slotId,
       });
@@ -1920,11 +1920,11 @@ export default function AdminAppointmentDashboard() {
     try {
       const [bookedRes, availableRes] = await Promise.all([
         apiClient.post<{ total: number; slots: Slot[] }>(
-          "immi-mangage-appointments",
+          "VizEx-mangage-appointments",
           { action: "list", status: "booked" },
         ),
         apiClient.post<{ total: number; slots: Slot[] }>(
-          "immi-mangage-appointments",
+          "VizEx-mangage-appointments",
           { action: "list", status: "available" },
         ),
       ]);
@@ -2018,7 +2018,9 @@ export default function AdminAppointmentDashboard() {
                 lineHeight: 1.1,
               }}
             >
-              <span className="italic font-bold text-yellow-500">🤖 Immi </span>{" "}
+              <span className="italic font-bold text-yellow-500">
+                🤖 VizEx{" "}
+              </span>{" "}
               Appointment Dashboard
             </h1>
           </div>

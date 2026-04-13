@@ -11,21 +11,25 @@ import axios from "axios";
 // Brand tokens
 // ─────────────────────────────────────────────────────────────
 const BRAND = {
-  crimsonDeep: "#6B0000",
-  crimson: "#8B0000",
-  crimsonMid: "#A50000",
-  crimsonBright: "#C41E1E",
-  crimsonGlow: "rgba(139,0,0,0.18)",
-  parchment: "#FDF8F5",
+  blueDeep: "#0F2747", // darkest shade
+  blue: "#1B3A6B", // base color (your provided one)
+  blueMid: "#2A4F8F", // slightly lighter
+  blueBright: "#3F6FB5", // highlight / CTA
+  blueGlow: "rgba(27,58,107,0.18)",
+
+  parchment: "#F5F8FD", // cool light background
   surface: "#FFFFFF",
-  surfaceWarm: "#FEF9F7",
-  border: "#F0E8E4",
-  borderStrong: "#DDD0CB",
-  textPrimary: "#1A0A0A",
-  textSecondary: "#6B4040",
-  textMuted: "#9E7070",
-  userBubble: "#8B0000",
-  userBubble2: "#6B0000",
+  surfaceWarm: "#F7FAFE",
+
+  border: "#E3EAF4",
+  borderStrong: "#C7D4E5",
+
+  textPrimary: "#0A1A2F", // dark blue-black for readability
+  textSecondary: "#3A557A",
+  textMuted: "#6B85A6",
+
+  userBubble: "#1B3A6B", // main bubble
+  userBubble2: "#0F2747", // gradient/depth
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -158,11 +162,11 @@ function ConsultPromptCard({ state, onYes, onNo }: ConsultPromptProps) {
             height: 36,
             borderRadius: 10,
             flexShrink: 0,
-            background: `linear-gradient(135deg, ${BRAND.crimson}, ${BRAND.crimsonBright})`,
+            background: `linear-gradient(135deg, ${BRAND.blue}, ${BRAND.blueBright})`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: `0 3px 12px ${BRAND.crimsonGlow}`,
+            boxShadow: `0 3px 12px ${BRAND.blueGlow}`,
           }}
         >
           <Calendar size={16} color="white" />
@@ -172,11 +176,11 @@ function ConsultPromptCard({ state, onYes, onNo }: ConsultPromptProps) {
             style={{
               fontSize: isMobile ? 13 : 14,
               fontWeight: 700,
-              color: BRAND.crimsonDeep,
+              color: BRAND.blueDeep,
               margin: "0 0 4px",
             }}
           >
-            Book a free consultation with our immigration attorney
+            Book a free consultation with our VizExgration attorney
           </p>
           <p
             style={{
@@ -228,7 +232,7 @@ function ConsultPromptCard({ state, onYes, onNo }: ConsultPromptProps) {
             justifyContent: "center",
             gap: 6,
             padding: isMobile ? "13px 16px" : "11px 16px",
-            background: `linear-gradient(135deg, ${BRAND.crimson}, ${BRAND.crimsonBright})`,
+            background: `linear-gradient(135deg, ${BRAND.blue}, ${BRAND.blueBright})`,
             color: "white",
             border: "none",
             borderRadius: 9,
@@ -237,7 +241,7 @@ function ConsultPromptCard({ state, onYes, onNo }: ConsultPromptProps) {
             cursor: "pointer",
             fontFamily: "inherit",
             transition: "all 0.15s",
-            boxShadow: `0 3px 14px ${BRAND.crimsonGlow}`,
+            boxShadow: `0 3px 14px ${BRAND.blueGlow}`,
           }}
           onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
           onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
@@ -266,8 +270,8 @@ function ConsultPromptCard({ state, onYes, onNo }: ConsultPromptProps) {
             whiteSpace: "nowrap",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = BRAND.crimsonBright;
-            e.currentTarget.style.color = BRAND.crimson;
+            e.currentTarget.style.borderColor = BRAND.blueBright;
+            e.currentTarget.style.color = BRAND.blue;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.borderColor = BRAND.borderStrong;
@@ -292,7 +296,7 @@ export default function Home() {
     {
       role: "assistant",
       content:
-        "Hello! I'm **Immi**, your US immigration assistant from **Hart Advisors**. I can help you with questions about visas, green cards, citizenship, and other immigration matters.\n\nYou can ask your questions in **any language you prefer**, and I'll do my best to assist you.\n\nHow can I assist you today?",
+        "Hello! I'm **VizEx**, your US VizExgration assistant from **Hart Advisors**. I can help you with questions about visas, green cards, citizenship, and other VizExgration matters.\n\nYou can ask your questions in **any language you prefer**, and I'll do my best to assist you.\n\nHow can I assist you today?",
     },
   ]);
   const [input, setInput] = useState<string>("");
@@ -327,7 +331,7 @@ export default function Home() {
           {
             role: "assistant" as const,
             content:
-              "Of course! Please select a date and time below, and an immigration consultant will confirm your appointment within 1–2 business days.",
+              "Of course! Please select a date and time below for 15 minute consultation, and an VizExgration consultant will confirm your appointment within 1–2 business days.",
             showBooking: true,
           },
         ];
@@ -344,7 +348,7 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const res = await axios.post(`${BASE_URL}/immi-claude-chatbot`, {
+      const res = await axios.post(`${BASE_URL}/VizEx-claude-chatbot`, {
         message: userMessage,
         conversationHistory: [],
       });
@@ -439,8 +443,8 @@ export default function Home() {
       {/* ── Header ───────────────────────────────────────────── */}
       <header
         style={{
-          background: `linear-gradient(135deg, ${BRAND.crimsonDeep} 0%, ${BRAND.crimson} 100%)`,
-          borderBottom: `1px solid ${BRAND.crimsonDeep}`,
+          background: `linear-gradient(135deg, ${BRAND.blueDeep} 0%, ${BRAND.blue} 100%)`,
+          borderBottom: `1px solid ${BRAND.blueDeep}`,
           boxShadow: "0 4px 24px rgba(107,0,0,0.35)",
           position: "sticky",
           top: 0,
@@ -517,13 +521,13 @@ export default function Home() {
                     fontFamily: "sans-serif",
                   }}
                 >
-                  US IMMIGRATION · LEGAL COUNSEL
+                  US VizExGRATION · LEGAL COUNSEL
                 </div>
               )}
             </div>
           </div>
 
-          {/* Immi badge */}
+          {/* VizEx badge */}
           <div
             style={{
               display: "flex",
@@ -554,7 +558,7 @@ export default function Home() {
                 fontWeight: 500,
               }}
             >
-              {isMobile ? "Online" : "Immi is online"}
+              {isMobile ? "Online" : "VizEx is online"}
             </span>
           </div>
         </div>
@@ -600,11 +604,11 @@ export default function Home() {
                     justifyContent: "center",
                     background:
                       message.role === "assistant"
-                        ? `linear-gradient(135deg, ${BRAND.crimson}, ${BRAND.crimsonBright})`
+                        ? `linear-gradient(135deg, ${BRAND.blue}, ${BRAND.blueBright})`
                         : `linear-gradient(135deg, #374151, #1F2937)`,
                     boxShadow:
                       message.role === "assistant"
-                        ? `0 3px 12px ${BRAND.crimsonGlow}`
+                        ? `0 3px 12px ${BRAND.blueGlow}`
                         : "0 3px 12px rgba(0,0,0,0.2)",
                   }}
                 >
@@ -635,7 +639,7 @@ export default function Home() {
                     lineHeight: 1.7,
                     boxShadow:
                       message.role === "user"
-                        ? `0 4px 20px ${BRAND.crimsonGlow}`
+                        ? `0 4px 20px ${BRAND.blueGlow}`
                         : `0 2px 12px rgba(0,0,0,0.07)`,
                     border:
                       message.role === "assistant"
@@ -663,21 +667,21 @@ export default function Home() {
                       <style>{`
                         .prose-hart p { margin: 0 0 8px; color: ${BRAND.textPrimary}; }
                         .prose-hart p:last-child { margin-bottom: 0; }
-                        .prose-hart strong { color: ${BRAND.crimsonDeep}; font-weight: 700; }
+                        .prose-hart strong { color: ${BRAND.blueDeep}; font-weight: 700; }
                         .prose-hart ul, .prose-hart ol { margin: 8px 0; padding-left: 20px; }
                         .prose-hart li { margin: 4px 0; color: ${BRAND.textPrimary}; }
                         .prose-hart h1,.prose-hart h2,.prose-hart h3 {
-                          color: ${BRAND.crimsonDeep}; font-weight: 700; margin: 12px 0 6px;
+                          color: ${BRAND.blueDeep}; font-weight: 700; margin: 12px 0 6px;
                           font-family: Georgia, serif;
                         }
-                        .prose-hart a { color: ${BRAND.crimsonBright}; text-decoration: none; }
+                        .prose-hart a { color: ${BRAND.blueBright}; text-decoration: none; }
                         .prose-hart a:hover { text-decoration: underline; }
                         .prose-hart code {
-                          background: #FFF0EE; color: ${BRAND.crimson};
+                          background: #FFF0EE; color: ${BRAND.blue};
                           padding: 1px 5px; border-radius: 4px; font-size: 12px;
                         }
                         .prose-hart blockquote {
-                          border-left: 3px solid ${BRAND.crimsonBright};
+                          border-left: 3px solid ${BRAND.blueBright};
                           padding-left: 12px; margin: 8px 0;
                           color: ${BRAND.textSecondary}; font-style: italic;
                         }
@@ -700,7 +704,7 @@ export default function Home() {
                             display: "inline-block",
                             width: 3,
                             height: 16,
-                            background: BRAND.crimsonBright,
+                            background: BRAND.blueBright,
                             marginLeft: 2,
                             verticalAlign: "middle",
                             animation: "blink 1s step-end infinite",
@@ -772,7 +776,7 @@ export default function Home() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: `linear-gradient(135deg, ${BRAND.crimson}, ${BRAND.crimsonBright})`,
+                  background: `linear-gradient(135deg, ${BRAND.blue}, ${BRAND.blueBright})`,
                 }}
               >
                 <Bot size={isMobile ? 14 : 17} color="white" />
@@ -796,7 +800,7 @@ export default function Home() {
                       width: 7,
                       height: 7,
                       borderRadius: "50%",
-                      background: BRAND.crimsonBright,
+                      background: BRAND.blueBright,
                       display: "inline-block",
                       animation: `dotBounce 1.2s ease-in-out ${i * 0.2}s infinite`,
                     }}
@@ -833,9 +837,9 @@ export default function Home() {
             }}
             onFocusCapture={(e) => {
               (e.currentTarget as HTMLDivElement).style.borderColor =
-                BRAND.crimson;
+                BRAND.blue;
               (e.currentTarget as HTMLDivElement).style.boxShadow =
-                `0 0 0 3px ${BRAND.crimsonGlow}`;
+                `0 0 0 3px ${BRAND.blueGlow}`;
             }}
             onBlurCapture={(e) => {
               (e.currentTarget as HTMLDivElement).style.borderColor =
@@ -885,12 +889,12 @@ export default function Home() {
                 cursor: input.trim() && !isLoading ? "pointer" : "not-allowed",
                 background:
                   input.trim() && !isLoading
-                    ? `linear-gradient(135deg, ${BRAND.crimson}, ${BRAND.crimsonBright})`
+                    ? `linear-gradient(135deg, ${BRAND.blue}, ${BRAND.blueBright})`
                     : BRAND.border,
                 transition: "all 0.15s",
                 boxShadow:
                   input.trim() && !isLoading
-                    ? `0 3px 14px ${BRAND.crimsonGlow}`
+                    ? `0 3px 14px ${BRAND.blueGlow}`
                     : "none",
               }}
               onMouseEnter={(e) => {
@@ -918,8 +922,8 @@ export default function Home() {
               lineHeight: 1.5,
             }}
           >
-            Immi provides general information only. For legal advice, consult a
-            qualified immigration attorney.
+            VizEx provides general information only. For legal advice, consult a
+            qualified VizExgration attorney.
           </p>
         </div>
       </footer>
@@ -935,7 +939,7 @@ export default function Home() {
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: ${BRAND.borderStrong}; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: ${BRAND.crimsonBright}; }
+        ::-webkit-scrollbar-thumb:hover { background: ${BRAND.blueBright}; }
         /* Prevent horizontal scroll on mobile */
         html, body { overflow-x: hidden; max-width: 100%; }
       `}</style>

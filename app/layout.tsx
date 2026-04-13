@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Immi",
-  description: "AI Based ChatBot for US Immigration",
+  title: "VizEx",
+  description: "AI Based ChatBot for US VizExgration",
 };
 
 export default function RootLayout({

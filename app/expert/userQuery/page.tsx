@@ -26,7 +26,7 @@ interface BookedBy {
   citizenshipCountry: string;
   residenceCountry: string;
   language: "English" | "Spanish";
-  immigrationGoal: string;
+  VizExgrationGoal: string;
   timeSensitivity: "weeks" | "months" | "none";
   timelineDetail?: string;
 }
@@ -229,7 +229,7 @@ function ConversationPreview({
               letterSpacing: "0.04em",
             }}
           >
-            IMMI
+            VizEx
           </span>
           <p
             style={{
@@ -372,7 +372,7 @@ function AppointmentCard({
         />
       </div>
 
-      {/* Immigration goal */}
+      {/* VizExgration goal */}
       <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 14 }}>
         <p
           style={{
@@ -384,12 +384,12 @@ function AppointmentCard({
             textTransform: "uppercase",
           }}
         >
-          Immigration goal
+          VizExgration goal
         </p>
         <p
           style={{ margin: 0, fontSize: 13, color: "#374151", lineHeight: 1.6 }}
         >
-          {bookedBy.immigrationGoal}
+          {bookedBy.VizExgrationGoal}
         </p>
       </div>
 
@@ -484,7 +484,7 @@ export default function AppointmentsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await apiClient.post("/immi-appointment-details", {
+        const res = await apiClient.post("/VizEx-appointment-details", {
           action: "getAll",
         });
         setAppointments(res.data.appointments);
