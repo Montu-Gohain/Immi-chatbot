@@ -81,7 +81,7 @@ function useIsMobile(breakpoint = 640): boolean {
 
 // ─── Consultation Terms ───────────────────────────────────────────────────────
 
-const CONSULTATION_TERMS = `This free 15-minute consultation is a preliminary informational meeting with a licensed US immigration attorney. It does not constitute legal advice and does not create an attorney-client relationship between you and VizEx, the Platform Operator, or the attorney conducting the consultation.
+const CONSULTATION_TERMS = `This free 15-minute consultation is a preliminary informational meeting with a licensed US VizExgration attorney. It does not constitute legal advice and does not create an attorney-client relationship between you and VizEx, the Platform Operator, or the attorney conducting the consultation.
 
 No attorney-client relationship is formed unless you separately retain an attorney through a written engagement agreement.
 
@@ -124,7 +124,7 @@ export default function AppointmentBooking({
   const [citizenshipCountry, setCitizenshipCountry] = useState("");
   const [residenceCountry, setResidenceCountry] = useState("");
   const [language, setLanguage] = useState<"English" | "Spanish" | "">("");
-  const [immigrationGoal, setImmigrationGoal] = useState("");
+  const [VizExgrationGoal, setVizExgrationGoal] = useState("");
   const [timeSensitivity, setTimeSensitivity] = useState<
     "weeks" | "months" | "none" | ""
   >("");
@@ -141,7 +141,7 @@ export default function AppointmentBooking({
     "calendar",
   );
 
-  const goalCharCount = immigrationGoal.length;
+  const goalCharCount = VizExgrationGoal.length;
 
   useEffect(() => {
     const fetchSlots = async () => {
@@ -149,7 +149,7 @@ export default function AppointmentBooking({
       setSlotsError(null);
       try {
         const res = await apiClient.post<{ total: number; slots: Slot[] }>(
-          "/immi-mangage-appointments",
+          "/VizEx-mangage-appointments",
           { action: "list", status: "available" },
         );
         setAllSlots(res.data.slots ?? []);
@@ -236,8 +236,8 @@ export default function AppointmentBooking({
     if (!residenceCountry.trim())
       newErrors.residenceCountry = "Country of residence is required.";
     if (!language) newErrors.language = "Please select a preferred language.";
-    if (!immigrationGoal.trim())
-      newErrors.immigrationGoal = "Please describe your immigration goal.";
+    if (!VizExgrationGoal.trim())
+      newErrors.VizExgrationGoal = "Please describe your VizExgration goal.";
     if (!timeSensitivity)
       newErrors.timeSensitivity = "Please select a time sensitivity option.";
     if (
@@ -260,7 +260,7 @@ export default function AppointmentBooking({
     setBookingLoading(true);
     setBookingError(null);
     try {
-      await apiClient.post("/immi-mangage-appointments", {
+      await apiClient.post("/VizEx-mangage-appointments", {
         action: "book",
         slotId: selectedSlot.id,
         bookedBy: {
@@ -271,7 +271,7 @@ export default function AppointmentBooking({
           citizenshipCountry: citizenshipCountry.trim(),
           residenceCountry: residenceCountry.trim(),
           language,
-          immigrationGoal: immigrationGoal.trim(),
+          VizExgrationGoal: VizExgrationGoal.trim(),
           timeSensitivity,
           timelineDetail: timelineDetail.trim(),
         },
@@ -724,7 +724,7 @@ export default function AppointmentBooking({
               <FieldError field="language" />
             </div>
 
-            {/* Field 6 — Immigration goal */}
+            {/* Field 6 — VizExgration goal */}
             <div>
               <label className={labelClass}>
                 What are you trying to accomplish?{" "}
@@ -732,19 +732,19 @@ export default function AppointmentBooking({
               </label>
               <textarea
                 placeholder="In one or two sentences — e.g. 'I want to bring my spouse to the US' or 'My employer is considering sponsoring me for an H-1B'"
-                value={immigrationGoal}
+                value={VizExgrationGoal}
                 maxLength={500}
                 onChange={(e) => {
                   if (e.target.value.length <= 500) {
-                    setImmigrationGoal(e.target.value);
-                    if (errors.immigrationGoal)
-                      setErrors((p) => ({ ...p, immigrationGoal: "" }));
+                    setVizExgrationGoal(e.target.value);
+                    if (errors.VizExgrationGoal)
+                      setErrors((p) => ({ ...p, VizExgrationGoal: "" }));
                   }
                 }}
-                className={`${inputClass("immigrationGoal")} resize-y min-h-[80px]`}
+                className={`${inputClass("VizExgrationGoal")} resize-y min-h-[80px]`}
               />
               <div className="flex justify-between items-center mt-1">
-                <FieldError field="immigrationGoal" />
+                <FieldError field="VizExgrationGoal" />
                 <span
                   className={`text-[11px] ml-auto ${
                     goalCharCount >= 500
@@ -898,7 +898,7 @@ export default function AppointmentBooking({
             <p className="text-[11px] text-slate-500 m-0">
               {isMobile
                 ? "Select a date & time"
-                : "Select a date & time with an immigration expert"}
+                : "Select a date & time with an VizExgration expert"}
             </p>
           </div>
         </div>

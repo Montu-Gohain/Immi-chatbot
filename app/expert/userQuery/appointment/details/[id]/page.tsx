@@ -26,7 +26,7 @@ interface BookedBy {
   citizenshipCountry: string;
   residenceCountry: string;
   language: "English" | "Spanish";
-  immigrationGoal: string;
+  VizExgrationGoal: string;
   timeSensitivity: "weeks" | "months" | "none";
   timelineDetail?: string;
 }
@@ -412,7 +412,7 @@ function AssistantBubble({ message }: { message: Message }) {
       </div>
       <div style={{ maxWidth: "78%" }}>
         <p style={{ margin: "0 0 4px", fontSize: 11, color: "#9ca3af" }}>
-          Immi · {formatTime(message.ts)}
+          VizEx · {formatTime(message.ts)}
         </p>
         <div
           style={{
@@ -448,7 +448,7 @@ export default function AppointmentDetailPage() {
     if (!slotId) return;
     (async () => {
       try {
-        const res = await apiClient.post("/immi-appointment-details", {
+        const res = await apiClient.post("/VizEx-appointment-details", {
           action: "getOne",
           slotId,
         });
@@ -749,7 +749,7 @@ export default function AppointmentDetailPage() {
             </div>
           )}
 
-          {/* Immigration goal */}
+          {/* VizExgration goal */}
           <div
             style={{
               background: "#eff6ff",
@@ -768,7 +768,7 @@ export default function AppointmentDetailPage() {
                 textTransform: "uppercase",
               }}
             >
-              🎯 Immigration goal
+              🎯 VizExgration goal
             </p>
             <p
               style={{
@@ -778,7 +778,7 @@ export default function AppointmentDetailPage() {
                 lineHeight: 1.75,
               }}
             >
-              {bookedBy.immigrationGoal}
+              {bookedBy.VizExgrationGoal}
             </p>
           </div>
         </div>
