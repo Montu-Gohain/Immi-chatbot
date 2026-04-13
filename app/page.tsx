@@ -348,7 +348,7 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const res = await axios.post(`${BASE_URL}/VizEx-claude-chatbot`, {
+      const res = await axios.post(`${BASE_URL}/immi-claude-chatbot`, {
         message: userMessage,
         conversationHistory: [],
       });
