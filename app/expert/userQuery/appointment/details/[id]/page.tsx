@@ -448,7 +448,7 @@ export default function AppointmentDetailPage() {
     if (!slotId) return;
     (async () => {
       try {
-        const res = await apiClient.post("/VizEx-appointment-details", {
+        const res = await apiClient.post("/immi-appointment-details", {
           action: "getOne",
           slotId,
         });

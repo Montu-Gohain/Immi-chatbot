@@ -484,7 +484,7 @@ export default function AppointmentsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await apiClient.post("/VizEx-appointment-details", {
+        const res = await apiClient.post("/immi-appointment-details", {
           action: "getAll",
         });
         setAppointments(res.data.appointments);

@@ -149,7 +149,7 @@ export default function AppointmentBooking({
       setSlotsError(null);
       try {
         const res = await apiClient.post<{ total: number; slots: Slot[] }>(
-          "/VizEx-mangage-appointments",
+          "/immi-mangage-appointments",
           { action: "list", status: "available" },
         );
         setAllSlots(res.data.slots ?? []);
@@ -260,7 +260,7 @@ export default function AppointmentBooking({
     setBookingLoading(true);
     setBookingError(null);
     try {
-      await apiClient.post("/VizEx-mangage-appointments", {
+      await apiClient.post("/immi-mangage-appointments", {
         action: "book",
         slotId: selectedSlot.id,
         bookedBy: {

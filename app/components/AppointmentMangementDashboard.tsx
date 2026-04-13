@@ -417,7 +417,7 @@ function SlotCreator({ onCreated }: { onCreated: () => void }) {
     setError(null);
     setSuccess(null);
     try {
-      const res = await apiClient.post("/VizEx-mangage-appointments", {
+      const res = await apiClient.post("/immi-mangage-appointments", {
         action: "create",
         date: selectedDateStr,
         startTime,
@@ -865,7 +865,7 @@ function DayModal({
   const handleCancel = async (slotId: string) => {
     setCancellingId(slotId);
     try {
-      await apiClient.post("/VizEx-mangage-appointments", {
+      await apiClient.post("/immi-mangage-appointments", {
         action: "cancel",
         slotId,
       });
@@ -880,7 +880,7 @@ function DayModal({
     if (!window.confirm("Delete this slot permanently?")) return;
     setDeletingId(slotId);
     try {
-      await apiClient.post("/VizEx-mangage-appointments", {
+      await apiClient.post("/immi-mangage-appointments", {
         action: "delete",
         slotId,
       });
@@ -1351,7 +1351,7 @@ function CalendarOverview({
   const handleCancel = async (slotId: string) => {
     setCancellingId(slotId);
     try {
-      await apiClient.post("/VizEx-mangage-appointments", {
+      await apiClient.post("/immi-mangage-appointments", {
         action: "cancel",
         slotId,
       });
@@ -1366,7 +1366,7 @@ function CalendarOverview({
     if (!window.confirm("Delete this slot permanently?")) return;
     setDeletingId(slotId);
     try {
-      await apiClient.post("/VizEx-mangage-appointments", {
+      await apiClient.post("/immi-mangage-appointments", {
         action: "delete",
         slotId,
       });
