@@ -1920,11 +1920,11 @@ export default function AdminAppointmentDashboard() {
     try {
       const [bookedRes, availableRes] = await Promise.all([
         apiClient.post<{ total: number; slots: Slot[] }>(
-          "VizEx-mangage-appointments",
+          "immi-mangage-appointments",
           { action: "list", status: "booked" },
         ),
         apiClient.post<{ total: number; slots: Slot[] }>(
-          "VizEx-mangage-appointments",
+          "immi-mangage-appointments",
           { action: "list", status: "available" },
         ),
       ]);
